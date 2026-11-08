@@ -30,7 +30,7 @@ rk_liv[e]_[0-9A-Za-z]{16,}
 sk-an[t]-[A-Za-z0-9_-]{20,}
 sk-pro[j]-[A-Za-z0-9_-]{20,}
 np[m]_[A-Za-z0-9]{36}
-py[p]i-[A-Za-z0-9_-]{50,}
+py[p]i-AgEIcHlwaS5vcmc[A-Za-z0-9_-]{30,}
 tske[y]-[A-Za-z0-9-]{10,}
 glc_ey[J][A-Za-z0-9_-]{10,}
 ey[J][A-Za-z0-9_-]{10,}\.ey[J][A-Za-z0-9_-]{10,}
