@@ -31,3 +31,7 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# Agent local state stays untracked; the contributor kit's skill links under .claude/skills/ are committed
+.claude/*
+!.claude/skills/

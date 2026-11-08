@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    # `edited` re-runs the acceptance-evidence check when the pull request body changes.
+    types: [opened, edited, reopened, synchronize, ready_for_review]
+
+permissions: {}
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  just-check:
+    name: just check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4
+        with:
+          just-version: '1.59.0'
+
+      - name: just check
+        run: just check </dev/null
+
+  ac-evidence:
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    uses: rknightion/.github/.github/workflows/ac-evidence.yml@f2fd1788b71a61808db8af0302edecf80b5b6959 # v1.26.0
+    with:
+      # Private repository with no outside contributors: every pull request needs Closes #N with
+      # evidence, or "Task: none, <reason>".
+      enforce-all-prs: true
+
+  ci-success:
+    name: ci-success
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: always()
+    needs: [just-check, ac-evidence]
+    permissions: {}
+    steps:
+      - name: Fail unless every required job succeeded
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          JUST_CHECK: ${{ needs.just-check.result }}
+          AC_EVIDENCE: ${{ needs.ac-evidence.result }}
+        run: |
+          echo "just-check=${JUST_CHECK} ac-evidence=${AC_EVIDENCE} event=${EVENT_NAME}"
+          if [ "$JUST_CHECK" != "success" ]; then
+            echo "just-check did not succeed: ${JUST_CHECK}"
+            exit 1
+          fi
+          # The reusable runs only on pull_request; on a push to main its job is skipped.
+          if [ "$AC_EVIDENCE" = "success" ]; then
+            exit 0
+          fi
+          if [ "$EVENT_NAME" = "push" ] && [ "$AC_EVIDENCE" = "skipped" ]; then
+            exit 0
+          fi
+          echo "ac-evidence did not succeed: ${AC_EVIDENCE}"
+          exit 1
