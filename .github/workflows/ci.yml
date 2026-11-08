@@ -69,10 +69,15 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           JUST_CHECK: ${{ needs.just-check.result }}
           AC_EVIDENCE: ${{ needs.ac-evidence.result }}
+          ZIZMOR: ${{ needs.zizmor.result }}
         run: |
           echo "just-check=${JUST_CHECK} ac-evidence=${AC_EVIDENCE} event=${EVENT_NAME}"
           if [ "$JUST_CHECK" != "success" ]; then
             echo "just-check did not succeed: ${JUST_CHECK}"
+            exit 1
+          fi
+          if [ "$ZIZMOR" != "success" ]; then
+            echo "zizmor did not succeed: ${ZIZMOR}"
             exit 1
           fi
           # The reusable runs only on pull_request; on a push to main its job is skipped.
