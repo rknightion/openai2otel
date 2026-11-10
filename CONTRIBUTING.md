@@ -11,9 +11,11 @@ facts is edited here; changes to the rest go to that repository.
 ## This repository
 
 <!-- vended:repo-facts:begin -->
-A maintainer replaces this paragraph with what a contributor needs to know about this repository
-in particular: the tools and versions `just setup` expects to find, anything slow or costly that
-`just check` runs (and whether pull request CI runs it instead), and where the docs live.
+openai2otel is written in Go (the version is in `go.mod`, added by the first code change). `just setup`
+installs the pinned golangci-lint and govulncheck into `.tools/`; you need Go, `just` and Git. `just check` runs format,
+lint, vet, race tests, a short fuzz run, tidy, a vulnerability scan, the build and generated-file drift,
+and pull request CI runs the same gate. Nothing in `just check` needs an OpenAI key or a Grafana
+account. Docs live in `docs/`; start with `docs/architecture.md`.
 <!-- vended:repo-facts:end -->
 
 ## Get set up

@@ -35,3 +35,8 @@ go.work.sum
 # Agent local state stays untracked; the contributor kit's skill links under .claude/skills/ are committed
 .claude/*
 !.claude/skills/
+
+# Machine-local agent and loop state, never committed
+codex/
+.tools/
+dist/
