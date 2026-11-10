@@ -1,0 +1,13 @@
+# Repository-specific privacy sweep patterns for openai2otel: OpenAI credential and identifier shapes.
+# Same syntax rules as identifier-patterns.txt. The minimum lengths keep these from matching prose
+# that names the shape (for example "org-" or "proj_" on their own).
+
+# OpenAI keys (sk-proj- is already in the default set).
+sk-admi[n]-[A-Za-z0-9_-]{20,}
+sk-svcacc[t]-[A-Za-z0-9_-]{20,}
+
+# OpenAI organisation, project, user and key ids.
+or[g]-[A-Za-z0-9]{20,}
+pro[j]_[A-Za-z0-9]{20,}
+use[r]-[A-Za-z0-9]{20,}
+ke[y]_[A-Za-z0-9]{16,}

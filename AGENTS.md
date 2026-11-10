@@ -1,9 +1,10 @@
 # openai2otel
 
-An OpenTelemetry exporter for OpenAI organisation usage and cost data, in the same family as the
-owner's other `*2otel` exporters. It is a new repository with no code yet. The language, the data it
-reads, the signals it emits and how it is deployed are to be settled by the first planning issue;
-until then treat every specific in this file as provisional.
+A Go exporter that polls the OpenAI Administration API (one Admin key per organisation, several
+organisations per process) and sends usage, cost, audit and inventory data to Grafana Cloud as OTLP
+metrics and logs. The design, the frozen seams, the signal contract and the work plan are in
+[docs/architecture.md](docs/architecture.md); live-verified API facts are in
+[docs/openai-api-gotchas.md](docs/openai-api-gotchas.md). Read both before changing code.
 
 <!-- BEGIN vended: rknightion/.github -->
 ## Contributor rules (vended)
@@ -91,5 +92,39 @@ which overrides this block for loop work; nothing here depends on it.
 ## Task interface
 
 `just` is the only task surface: never add a `Makefile` or a `scripts/*.sh` runner. The gate is
-`just check` (run it with stdin from `/dev/null`); `just setup` prepares a clone. The recipes are
-placeholders until the first implementation issue replaces them.
+`just check` (run it with stdin from `/dev/null`); `just setup` prepares a clone. Until the Go scaffold
+issue lands, the recipes are placeholders.
+
+## Architecture seams
+
+| Package | Job |
+| --- | --- |
+| `internal/model`, `internal/semconv`, `internal/secret` | Shared types, every published name, the redacting secret type. Frozen: a change needs the maintainer. |
+| `internal/openai` | Read-only Admin API client. GET only, by construction. |
+| `internal/bucketstate` | Pure counting core: reconcile, baseline, zero-priming, delivered digests. No I/O. |
+| `internal/statestore` | State files: atomic write, single-writer lock, schema version. |
+| `internal/telemetry` | OTLP providers, the state-backed metric producer, the acknowledged log sender. |
+| `internal/collector` | Registry, per-org scheduler, the commit sequence (`commit.go`). |
+| `internal/collectors/*` | One package per data family: costs, usage, audit, inventory. |
+
+- A generated artifact (`config.example.yaml`, `docs/env-vars.md`, `spec/signal-catalog.json`,
+  `docs/signals.md`, dashboards, alert rules) changes in the same commit as its source; run `just gen`.
+- Config keys, metric names, log event names and attribute names are published contracts.
+
+## Traps
+
+- Where OpenAI's docs disagree with the live API, the live API wins
+  ([docs/openai-api-gotchas.md](docs/openai-api-gotchas.md)). Never "correct" working code to match a
+  doc.
+- Metrics are never back-dated: Grafana Cloud's metric store accepts samples at most about 2 hours out
+  of order. Only logs carry source timestamps, and Loki rejects anything older than about 7 days.
+- A new counter series must report 0 before its first real value; Grafana Cloud does not insert a zero
+  at the start time, so `increase()` ignores a new series' first value.
+- A log record that may be re-sent must be byte-identical: no "now" values in its body or attributes.
+- Usage and cost queries must set `limit` (168 for hourly usage, 31 for daily costs); the default page
+  holds only 24 buckets.
+- `GET /organization/spend_limit` returns 404 when no limit is set, and audit `tenant_only=true`
+  returns 401 `tenant_not_found` outside an enterprise tenant: both mean "not applicable".
+- Spend limits are in cents with an upper-case currency; costs are in dollars with a lower-case one.
+- No identifiers in fixtures: replace OpenAI ids with their prefix plus `x` padding, and run the privacy
+  sweep before committing.
