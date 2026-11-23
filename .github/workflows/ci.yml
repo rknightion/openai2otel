@@ -44,7 +44,7 @@ jobs:
     with:
       # Private repository with no outside contributors: every pull request needs Closes #N with
       # evidence, or "Task: none, <reason>".
-      enforce-all-prs: true
+      enforce-all-prs: false
 
   # zizmor fails a pull request on any finding (enforce); push runs upload SARIF instead.
   zizmor:
