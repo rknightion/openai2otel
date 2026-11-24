@@ -5,8 +5,9 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
-    # `edited` re-runs the acceptance-evidence check when the pull request body changes.
-    types: [opened, edited, reopened, synchronize, ready_for_review]
+    # The acceptance-evidence check reads the pull request body, so it runs in pr-metadata.yml;
+    # a body edit does not re-run this workflow.
+    types: [opened, reopened, synchronize, ready_for_review]
 
 permissions: {}
 
@@ -33,19 +34,6 @@ jobs:
       - name: just check
         run: just check </dev/null
 
-  ac-evidence:
-    # The reusable fails on any event but pull_request; on a push to main this job is skipped.
-    if: github.event_name == 'pull_request'
-    permissions:
-      contents: read
-      issues: read
-      pull-requests: read
-    uses: rknightion/.github/.github/workflows/ac-evidence.yml@7ed87713176ccae972b0143071b0196ff370d804 # v1.32.3
-    with:
-      # Public repository: outside contributors and Renovate open pull requests with no tracker
-      # line, so the check applies only to a pull request that closes an issue.
-      enforce-all-prs: false
-
   # zizmor fails a pull request on any finding (enforce); push runs upload SARIF instead.
   zizmor:
     permissions:
@@ -61,17 +49,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     if: always()
-    needs: [just-check, ac-evidence, zizmor]
+    needs: [just-check, zizmor]
     permissions: {}
     steps:
       - name: Fail unless every required job succeeded
         env:
           EVENT_NAME: ${{ github.event_name }}
           JUST_CHECK: ${{ needs.just-check.result }}
-          AC_EVIDENCE: ${{ needs.ac-evidence.result }}
           ZIZMOR: ${{ needs.zizmor.result }}
         run: |
-          echo "just-check=${JUST_CHECK} ac-evidence=${AC_EVIDENCE} event=${EVENT_NAME}"
+          echo "just-check=${JUST_CHECK} zizmor=${ZIZMOR} event=${EVENT_NAME}"
           if [ "$JUST_CHECK" != "success" ]; then
             echo "just-check did not succeed: ${JUST_CHECK}"
             exit 1
@@ -80,12 +67,3 @@ jobs:
             echo "zizmor did not succeed: ${ZIZMOR}"
             exit 1
           fi
-          # The reusable runs only on pull_request; on a push to main its job is skipped.
-          if [ "$AC_EVIDENCE" = "success" ]; then
-            exit 0
-          fi
-          if [ "$EVENT_NAME" = "push" ] && [ "$AC_EVIDENCE" = "skipped" ]; then
-            exit 0
-          fi
-          echo "ac-evidence did not succeed: ${AC_EVIDENCE}"
-          exit 1
