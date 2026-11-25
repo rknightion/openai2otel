@@ -141,14 +141,3 @@ issue lands, the recipes are placeholders.
 - Spend limits are in cents with an upper-case currency; costs are in dollars with a lower-case one.
 - No identifiers in fixtures: replace OpenAI ids with their prefix plus `x` padding, and run the privacy
   sweep before committing.
-
-## Cursor Cloud specific instructions
-
-The base image supplies `just`. Run `just setup </dev/null` once. The current setup
-recipe is a placeholder and installs no dependencies.
-
-- Fast check: `just fmt-check </dev/null`
-- Full repository gate: `just check </dev/null`
-
-The current checks use local files. Live API probes, Grafana verification and
-reference deployment remain maintainer tasks under [LOOP.md](LOOP.md).
